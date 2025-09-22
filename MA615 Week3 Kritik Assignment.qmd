@@ -1,22 +1,18 @@
 ---
 title: "MA615 Week3 Kritik Activity"
-format: html
+format: pdf
 editor: visual
 ---
 
-## About the dataset
+## About
 
 The dataset contains the measurement of the peak accelerations of 24 earthquakes in California at various different observation stations.
 
-## Visualization of the assigned dataset
+## Visualization 
 
 The graph shows: peak accelerations (g) vs station-hypocenter distance(km)
 
 ```{r}
-# Take a look ar the data set
-help(attenu)
-
-
 plot(attenu$dist, attenu$accel, xlab="station-hypocenter distance (km)", ylab="peak acceleration (g)")
 title(main="Accel vs Dist")
 ```
