@@ -6,13 +6,17 @@ editor: visual
 
 ## About
 
-The dataset contains the measurement of the peak accelerations of 24 earthquakes in California at various different observation stations.
+The dataset uses for this report is "attenu", which contains the measurements of the peak acceleration of 24 earthquakes in California at different observation stations.
 
-## Visualization 
+Source: Joyner, W.B., D.M. Boore and R.D. Porcella (1981). Peak horizontal acceleration and velocity from strong-motion records including records from the 1979 Imperial Valley, California earthquake. USGS Open File report 81-365. Menlo Park, Ca.
 
-The graph shows: peak accelerations (g) vs station-hypocenter distance(km)
+## Visualization
 
 ```{r}
-plot(attenu$dist, attenu$accel, xlab="station-hypocenter distance (km)", ylab="peak acceleration (g)")
-title(main="Accel vs Dist")
+plot(attenu$dist, attenu$accel, 
+     xlab="station-hypocenter distance (km)", 
+     ylab="peak acceleration (g)")
+title(main="Acceleration vs Distance")
 ```
+
+The graph shows: peak accelerations (g) vs station-hypocenter distance (km)
