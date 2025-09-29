@@ -1,0 +1,167 @@
+---
+title: "MA615 HW D"
+format: html
+editor: visual
+---
+
+## Install Packages
+
+```{r, message=FALSE}
+library(dplyr)
+library(tibble)
+library(data.table)
+library(knitr)
+```
+
+## Load Buoy Data
+
+We will load Buoy data from the National Data Buoy Center website. Specifically, we will load the standard meteorological data collected at station 44013 from 1984 to 2024
+
+```{r, message=FALSE}
+
+# Function
+# Input: the year of the data we want to load
+# Output: dataframe containing the standard meteorological data collected at station 44013 during that year
+load_buoy_data <- function(year){
+  # Define the URL of the data
+  url_head <- "https://www.ndbc.noaa.gov/view_text_file.php?filename=44013h"
+  url_tail <- ".txt.gz&dir=data/historical/stdmet/"
+  url <- paste(url_head, year, url_tail, sep="")
+  
+  # Load the data into a dataframe
+  header <- scan(url, what = 'character', nlines = 1)
+  df <- read.table(url, fill=T, header=F)
+  setnames(df, header)
+  
+  # In some cases the first row will be column names, if so remove the first row
+  row1_colname <- all(sapply(df[1,], is.character))
+  if (row1_colname){
+    df <- df[-1,]
+  }
+  
+  # Return the result dataframe 
+  return(df)
+}
+
+# Load the data from 1984 to 2024
+buoy_data_1984_2024 <- load_buoy_data(1984)
+for (year in 1985:2024){
+  df <- load_buoy_data(year)
+  buoy_data_1984_2024 <- rbindlist(list(buoy_data_1984_2024, df), fill=T)
+}
+```
+
+### Clean and Reorganize the Data
+
+```{r}
+# Columns with the same data but different names will be merged together
+# Year Column:
+# Merge columns
+buoy_data_1984_2024$YYYY <- coalesce(buoy_data_1984_2024$YYYY,buoy_data_1984_2024$YY)
+buoy_data_1984_2024$YYYY <- as.numeric(buoy_data_1984_2024$YYYY)
+buoy_data_1984_2024$YYYY <- coalesce(buoy_data_1984_2024$YYYY, buoy_data_1984_2024$`#YY`)
+buoy_data_1984_2024$YYYY <- ifelse(buoy_data_1984_2024$YYYY<100, buoy_data_1984_2024$YYYY+1900, buoy_data_1984_2024$YYYY)
+buoy_data_1984_2024$YYYY <- as.character(buoy_data_1984_2024$YYYY)
+buoy_data_1984_2024 <- relocate(buoy_data_1984_2024, YYYY, .before=YY)
+# Drop redundant columns
+buoy_data_1984_2024 <- buoy_data_1984_2024[,-c(2,20)]
+
+# Wind Direction Columns:
+# Merge columns
+buoy_data_1984_2024$WDIR <- as.character(buoy_data_1984_2024$WDIR)
+buoy_data_1984_2024$WDIR <- coalesce(buoy_data_1984_2024$WDIR,buoy_data_1984_2024$WD)
+buoy_data_1984_2024 <- relocate(buoy_data_1984_2024, WDIR, .before=WD)
+# Drop redundant columns
+buoy_data_1984_2024 <- buoy_data_1984_2024[,-6]
+
+# Use a unify way of denoting month and day
+for (i in 1:9){
+  old <- as.character(i)
+  new <- paste(0,i,sep="")
+  buoy_data_1984_2024$MM <- ifelse(buoy_data_1984_2024$MM==old, new, buoy_data_1984_2024$MM)
+}
+
+for (i in 1:9){
+  old <- as.character(i)
+  new <- paste(0,i,sep="")
+  buoy_data_1984_2024$DD <- ifelse(buoy_data_1984_2024$DD==old, new, buoy_data_1984_2024$DD)
+}
+
+# Relocate other columns
+buoy_data_1984_2024 <- relocate(buoy_data_1984_2024, mm, .after=hh)
+buoy_data_1984_2024 <- relocate(buoy_data_1984_2024, PRES, .after=MWD)
+
+knitr::kable(head(buoy_data_1984_2024), format="html")
+```
+
+## Explore the Data
+
+In this section, we will explore the wind patterns from 1984 to 2024, which is represented by the two variables
+
+1.  WSPD: Wind speed (m/s) averaged over 8-minute periods for buoy, 2-minute period for land station
+
+2.  GST: Peak 5 or 8 second gust speed (m/s), measured in an 8-minute or 2-minute periods
+
+WE will examine these two variables base on different time unit (days, months, years) and see if we can find any interesting patterns.
+
+### Prepare the Data
+
+Some of the row contains missing values denoted by 99, remove them before analysis
+
+```{r}
+# Remove rows with missing values in WSPD
+boxplot.WSPD <- filter(buoy_data_1984_2024, as.numeric(WSPD)<40)
+# Remove rows with missing values in WSPD
+boxplot.GST <- filter(buoy_data_1984_2024, as.numeric(GST)<40)
+```
+
+### Wind patterns over each day of month
+
+```{r}
+# Wind speed vs Day
+boxplot.WSPD <- filter(buoy_data_1984_2024, as.numeric(WSPD)<40)
+boxplot(as.numeric(WSPD) ~ DD, data=boxplot.WSPD, xlab="Day", ylab="Wind Speed (m/s)")
+title("Wind Speed vs Each Day of Month")
+
+# Peak gust speed vs Day
+boxplot(as.numeric(GST) ~ DD, data=boxplot.GST, xlab="Day", ylab="Peak Gust Speed (m/s)")
+title("Peak Gust Speed vs Each Day of Month")
+```
+
+### Wind patterns over each month
+
+```{r}
+# Wind speed vs Month
+boxplot.WSPD <- filter(buoy_data_1984_2024, as.numeric(WSPD)<40)
+boxplot(as.numeric(WSPD) ~ MM, data=boxplot.WSPD, xlab="Month", ylab="Wind Speed (m/s)")
+title("Wind Speed vs Month")
+
+# Peak gust speed vs Month
+boxplot(as.numeric(GST) ~ MM, data=boxplot.GST, xlab="Month", ylab="Peak Gust Speed (m/s)")
+title("Peak Gust Speed vs Month")
+```
+
+### Wind patterns over each year
+
+```{r}
+# Wind speed vs Year
+boxplot.WSPD <- filter(buoy_data_1984_2024, as.numeric(WSPD)<40)
+boxplot(as.numeric(WSPD) ~ YYYY, data=boxplot.WSPD, xlab="Year", ylab="Wind Speed (m/s)")
+title("Wind Speed vs Year")
+
+# Peak gust speed vs Year
+boxplot(as.numeric(GST) ~ YYYY, data=boxplot.GST, xlab="Year", ylab="Peak Gust Speed (m/s)")
+title("Peak Gust Speed vs Year")
+```
+
+### Conclusion
+
+Based on the the graphs above, we conclude that there is
+
+1.  Very noticeable wind patterns across the months
+
+2.  Somewhat noticeable wind patterns across the years
+
+3.  No clear wind patterns across the days
+
+Also, the patterns in Wind Speed match the patterns in "Peak Gust Speed" very well.
